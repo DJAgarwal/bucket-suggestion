@@ -13,8 +13,8 @@ class BucketSuggestionController extends Controller
         $total_capacity = Bucket::sum('capacity');
         $balls_list = Ball::get();
         $buckets_list = Bucket::get();
-        $ballsCountPerBucket = [];
-        return view('index',compact('bucket_count','total_capacity','balls_list','buckets_list','ballsCountPerBucket'));
+        $output = session('output', []);
+        return view('index',compact('bucket_count','total_capacity','balls_list','buckets_list','output'));
     }
 
 //     public function store(Request $request)
@@ -36,31 +36,47 @@ class BucketSuggestionController extends Controller
 // die;
 //         return redirect()->route('index')->with('ballsCountPerBucket', $ballsCountPerBucket);
 //     }
-public function store()
-{
-    $buckets = Bucket::all();
-    $balls = Ball::orderBy('size', 'desc')->get();
+    public function store(Request $request)
+    {
+        $buckets = Bucket::all();
+        $ballIds = $request->input('id');
+        $quantities = $request->input('quantity');
+        $output = [];
+        $buckets = $buckets->sortBy('capacity');
 
-    $buckets = $buckets->sortBy('capacity');
+        foreach ($buckets as $bucket) {
+            $balls = [];
+            foreach ($ballIds as $index => $ballId) {
+                $quantity = $quantities[$index];
+                for ($i = 0; $i < $quantity; $i++) {
+                    $ball = Ball::find($ballId);
+                    if ($ball) {
+                        $balls[] = $ball;
+                    }
+                }
+            }
 
-    foreach ($buckets as $bucket) {
-        $remainingCapacity = $bucket->capacity;
+            $remainingCapacity = $bucket->capacity;
+            $ballsInBucket = [];
+            $colorQuantities = [];
 
-        foreach ($balls as $ball) {
-            if ($ball->size <= $remainingCapacity) {
-                $remainingCapacity -= $ball->size;
-
-                break;
+            foreach ($balls as $ball) {
+                if ($ball->size <= $remainingCapacity) {
+                    $remainingCapacity -= $ball->size;
+                    $color = $ball->colour;
+                    $colorQuantities[$color] = ($colorQuantities[$color] ?? 0) + 1;
+                }
+            }
+            $outputLine = "Bucket {$bucket->id}: ";
+            foreach ($colorQuantities as $color => $quantity) {
+                $ballsInBucket[] = "{$quantity} {$color}";
+            }
+            $outputLine .= implode(', ', $ballsInBucket) . " Balls";
+            $output[] = $outputLine;
+            if ($remainingCapacity <= 0) {
+                continue;
             }
         }
-
-        echo "Bucket {$bucket->id} filled. Remaining capacity: {$remainingCapacity}\n";
-
-        if ($remainingCapacity <= 0) {
-            continue;
-        }
+        return redirect()->route('index')->with('output', $output);
     }
-
-    return response()->json(['message' => 'Buckets filled successfully']);
-}
 }

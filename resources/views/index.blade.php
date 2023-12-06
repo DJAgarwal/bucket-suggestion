@@ -37,7 +37,7 @@
                                     <td>{{$bl->size}}</td>
                                     <td>
                                         <input type="hidden" class="form-control" name="id[]" value="{{$bl->id}}">
-                                        <input type="number" class="form-control" name="quantity[]" min="0" value="0">
+                                        <input type="number" class="form-control" name="quantity[]" min="0" value="{{ old('quantity', 0) }}">
                                     </td>
                                 </tr>
                             @endforeach
@@ -49,14 +49,10 @@
                     <div class="table-responsive col-md-6" style="margin-top:10px;">
                         <table class="table table-bordered table-striped">
                             <tbody>
-                            @foreach($buckets_list as $bl)
+                            @foreach($output as $ot)
                                 <tr>
-                                    <td>Bucket {{$bl->id}}</td>
-                                    <td>
-                                        @foreach($ballsCountPerBucket as $bcpb)
-                                        {{$bcpb}}
-                                        @endforeach
-                                    </td>
+                                    <td>{{ explode(':', $ot)[0] }}</td>
+                                    <td>{{ explode(':', $ot)[1] }}</td>
                                 </tr>
                             @endforeach
                             </tbody>
