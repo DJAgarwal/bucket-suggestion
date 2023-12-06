@@ -36,60 +36,31 @@ class BucketSuggestionController extends Controller
 // die;
 //         return redirect()->route('index')->with('ballsCountPerBucket', $ballsCountPerBucket);
 //     }
-public function store(Request $request)
+public function store()
 {
-    $quantities = $request->input('quantity');
-    $ballIds = $request->input('id');
+    $buckets = Bucket::all();
+    $balls = Ball::orderBy('size', 'desc')->get();
 
-    // Validate input arrays to ensure they have the same length
-    if (count($quantities) != count($ballIds)) {
-        return response()->json(['error' => 'Invalid input'], 400);
-    }
+    $buckets = $buckets->sortBy('capacity');
 
-    // Create an array to store the total quantity for each ball
-    $totalQuantity = [];
+    foreach ($buckets as $bucket) {
+        $remainingCapacity = $bucket->capacity;
 
-    // Calculate total quantity for each ball based on the input
-    foreach ($quantities as $key => $quantity) {
-        $ballId = $ballIds[$key];
-        $totalQuantity[$ballId] = ($totalQuantity[$ballId] ?? 0) + $quantity;
-    }
+        foreach ($balls as $ball) {
+            if ($ball->size <= $remainingCapacity) {
+                $remainingCapacity -= $ball->size;
 
-    // Sort balls by quantity in descending order
-    arsort($totalQuantity);
-
-    // Initialize buckets with their capacities
-    $buckets = [100, 120, 140];
-
-    // Create an array to store the ball distribution in each bucket
-    $ballDistribution = [];
-
-    // Distribute balls to buckets
-    foreach ($totalQuantity as $ballId => $quantity) {
-        $allocated = false;
-        foreach ($buckets as $key => $bucketCapacity) {
-            if ($quantity <= $bucketCapacity) {
-                $ballDistribution[$key][$ballId] = $quantity;
-                $buckets[$key] -= $quantity;
-                $allocated = true;
                 break;
             }
         }
 
-        // If a ball couldn't be allocated to any bucket, handle this case as needed
-        if (!$allocated) {
-            return response()->json(['error' => 'Not enough buckets for the balls'], 400);
+        echo "Bucket {$bucket->id} filled. Remaining capacity: {$remainingCapacity}\n";
+
+        if ($remainingCapacity <= 0) {
+            continue;
         }
     }
 
-    // Output the result
-    foreach ($ballDistribution as $key => $distribution) {
-        $bucketNumber = $key + 1;
-        echo "Bucket $bucketNumber: ";
-        foreach ($distribution as $ballId => $quantity) {
-            echo "$quantity $ballId balls, ";
-        }
-        echo "\n";
-    }
+    return response()->json(['message' => 'Buckets filled successfully']);
 }
 }
